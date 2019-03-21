@@ -1,7 +1,9 @@
 from PyQt5.QtCore import Qt, QThread, QTimer
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, \
-    QApplication, QSlider
+    QApplication, QSlider, QLabel
 from pyqtgraph import ImageView
+from packages.utils import CVQImage
+from PyQt5.QtGui import QImage, QPixmap
 
 
 class StartWindow(QMainWindow):
@@ -12,34 +14,30 @@ class StartWindow(QMainWindow):
         self.central_widget = QWidget()
         self.button_frame = QPushButton('Acquire Frame', self.central_widget)
         self.button_movie = QPushButton('Start Movie', self.central_widget)
-        self.image_view = ImageView()
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setRange(0, 10)
+        self.screenLabel = QLabel()
 
         self.layout = QVBoxLayout(self.central_widget)
+        self.layout.addWidget(self.screenLabel)
         self.layout.addWidget(self.button_frame)
         self.layout.addWidget(self.button_movie)
-        self.layout.addWidget(self.image_view)
-        self.layout.addWidget(self.slider)
         self.setCentralWidget(self.central_widget)
 
         self.button_frame.clicked.connect(self.update_image)
         self.button_movie.clicked.connect(self.start_movie)
-        self.slider.valueChanged.connect(self.update_brightness)
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_movie)
 
     def update_image(self):
         frame = self.camera.get_frame()
-        self.image_view.setImage(frame.T)
+        image = CVQImage(frame)
+        pixmap = QPixmap.fromImage(image)
+        self.screenLabel.setPixmap(pixmap)
 
     def update_movie(self):
-        self.image_view.setImage(self.camera.last_frame.T)
-
-    def update_brightness(self, value):
-        value /= 10
-        self.camera.set_brightness(value)
+        image = CVQImage(self.camera.last_frame)
+        pixmap = QPixmap.fromImage(image)
+        self.screenLabel.setPixmap(pixmap)
 
     def start_movie(self):
         self.movie_thread = MovieThread(self.camera)
